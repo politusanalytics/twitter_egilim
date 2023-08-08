@@ -17,13 +17,18 @@ database_or_input_filename = sys.argv[1]
 
 # MUST SET THESE VALUES
 output_filename = "out.json"
-pretrained_transformers_model = "xlm-roberta-base"
-max_seq_length = 512
-batch_size = 64
-idx_to_label = ["category1", "category2", "category3"]
-encoder_path = ""
-classifier_path = ""
+pretrained_transformers_model = "dbmdz/bert-base-turkish-128k-cased"
+max_seq_length = 64
+batch_size = 1536
+repo_path = "/home/username/twitter_egilim"
+
+idx_to_label = ["irrelevant", "demand", "complaint"]
+encoder_path = f"{repo_path}/models/best_models/encoder_dbmdz_bert-base-turkish-128k-cased_??.pt"
+classifier_path = f"{repo_path}/models/best_models/classifier_dbmdz_bert-base-turkish-128k-cased_??.pt"
 device = torch.device("cuda")
+
+query = {"text": {"$nin": ["", None]}, "egilim": None}
+
 
 # OPTIONS
 return_probabilities = False
@@ -102,7 +107,7 @@ if __name__ == "__main__":
         tweet_col = db["tweets"]
 
         # NOTE: This find can be changed according to the task.
-        tweets_to_predict = tweet_col.find({task_name: None}, ["_id", "text"])
+        tweets_to_predict = tweet_col.find(query, ["_id", "text"])
 
         curr_batch = []
         for i, tweet in enumerate(tweets_to_predict):
