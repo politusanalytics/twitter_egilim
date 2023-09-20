@@ -29,7 +29,7 @@ only_test = False # Only perform testing
 predict = False # Predict instead of testing
 has_token_type_ids = False
 
-label_list = ["irrelevant", "demand", "complaint"]
+label_list = ["irrelevant", "demand", "complaint"] # municipal version
 label_to_idx = {}
 idx_to_label = {}
 for (i, label) in enumerate(label_list):

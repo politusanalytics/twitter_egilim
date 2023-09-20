@@ -19,15 +19,16 @@ database_or_input_filename = sys.argv[1]
 output_filename = "out.json"
 pretrained_transformers_model = "dbmdz/bert-base-turkish-128k-cased"
 max_seq_length = 64
-batch_size = 1536
+batch_size = 1344 # 1536
 repo_path = "/home/username/twitter_egilim"
 
-idx_to_label = ["irrelevant", "demand", "complaint"]
-encoder_path = f"{repo_path}/models/best_models/encoder_dbmdz_bert-base-turkish-128k-cased_??.pt"
-classifier_path = f"{repo_path}/models/best_models/classifier_dbmdz_bert-base-turkish-128k-cased_??.pt"
+idx_to_label = ["irrelevant", "demand", "complaint"] # municipal version
+encoder_path = f"{repo_path}/models/best_models/municipal/encoder_dbmdz_bert-base-turkish-128k-cased_57.pt"
+classifier_path = f"{repo_path}/models/best_models/municipal/classifier_dbmdz_bert-base-turkish-128k-cased_57.pt"
 device = torch.device("cuda")
+task_name = "egilim"
 
-query = {"text": {"$nin": ["", None]}, "egilim": None}
+query = {"municipal": {"$nin": [None, []]}, "text": {"$nin": ["", None]}, task_name: None}
 
 
 # OPTIONS
@@ -46,7 +47,7 @@ classifier = torch.nn.Linear(encoder.config.hidden_size, 1 if len(idx_to_label) 
 classifier.to(device)
 classifier.load_state_dict(torch.load(classifier_path, map_location=device))
 
-encoder = torch.nn.DataParallel(encoder)
+encoder = torch.nn.DataParallel(encoder) # , device_ids=[1,2,3,4,5,6,7]
 encoder.eval()
 classifier.eval()
 
@@ -89,8 +90,10 @@ def preprocess(text): # Preprocess text (username and link placeholders)
 # Here the format for every line is like:
 # {id_str: text}
 def read_json_line(data):
-    id_str = list(data.keys())[0]
-    text = preprocess(data[id_str])
+    # id_str = list(data.keys())[0]
+    # text = preprocess(data[id_str])
+    id_str = data["id"]
+    text = preprocess(data["text"])
 
     return id_str, text
 
@@ -155,7 +158,7 @@ if __name__ == "__main__":
             id_str, text = read_json_line(data)
 
             if len(text) > 0:
-                curr_batch.append({"id_str": id_str, "text": text})
+                curr_batch.append({"id": id_str, "text": text})
 
             if len(curr_batch) == batch_size:
                 texts = [d["text"] for d in curr_batch]
@@ -165,7 +168,7 @@ if __name__ == "__main__":
                 for pred_idx, pred in enumerate(preds):
                     curr_d = curr_batch[pred_idx]
                     curr_d.pop("text") # No need for text in the output.
-                    curr_d["prediction"] = pred
+                    curr_d[task_name] = pred
                     output_file.write(json.dumps(curr_d, ensure_ascii=False) + "\n")
 
                 curr_batch = []
@@ -181,7 +184,7 @@ if __name__ == "__main__":
             for pred_idx, pred in enumerate(preds):
                 curr_d = curr_batch[pred_idx]
                 curr_d.pop("text") # No need for text in the output.
-                curr_d["prediction"] = pred
+                curr_d[task_name] = pred
                 output_file.write(json.dumps(curr_d, ensure_ascii=False) + "\n")
 
         output_file.close()
